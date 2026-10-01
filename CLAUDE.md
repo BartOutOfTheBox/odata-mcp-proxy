@@ -25,7 +25,7 @@ npm run build:btp    # Build MTA archive
 npm run deploy:btp   # Deploy via CF CLI
 ```
 
-No test framework is configured in this project.
+Unit tests use Node's built-in test runner via tsx (`npm test`). Test files live next to the code as `src/**/*.test.ts` and are excluded from the build.
 
 ## Architecture
 
@@ -71,6 +71,7 @@ API categories (can be filtered via `ENABLED_API_CATEGORIES` env var):
 | `src/client/odata-client.ts` | OData HTTP client (GET/POST/PATCH/DELETE, binary downloads) |
 | `src/client/destination-service.ts` | Credential resolution (BTP vs local) |
 | `src/client/retry.ts` | Exponential backoff retry logic |
+| `src/client/response-body.ts` | Classifies GET bodies as JSON / text / binary; formats binary as an MCP embedded resource |
 | `src/tools/registry.ts` | Tool registration and OData call handlers |
 | `src/config/api-config.json` | All API definitions (destinations, path prefixes, entity sets) |
 | `src/config/index.ts` | Zod-validated config loaded from environment; `ApiDefinition` / `ApiConfig` types |
@@ -90,6 +91,7 @@ Config is Zod-validated at startup; the server exits immediately on invalid conf
 | `LOG_LEVEL` | `info` | `error`/`warn`/`info`/`debug` |
 | `REQUEST_TIMEOUT` | `60000` | ms |
 | `ENABLED_API_CATEGORIES` | all | Comma-separated category filter |
+| `MAX_BINARY_RESPONSE_SIZE` | `10485760` | Max bytes of a binary `$value` download returned as a base64 resource; larger ones return an error |
 | `API_CONFIG_FILE` | `api-config.json` | Config file name (relative to `src/config/`) or absolute path; also accepts `btp-admin-api-config.json` |
 
 #### Selecting and adding API config files

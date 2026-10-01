@@ -2,6 +2,7 @@ import { executeHttpRequest } from '@sap-cloud-sdk/http-client';
 import type { HttpDestinationOrFetchOptions } from '@sap-cloud-sdk/connectivity';
 import { logger } from '../utils/logger.js';
 import { parseODataError } from './odata-error.js';
+import { decodeResponseBody } from './response-body.js';
 
 /**
  * Base OData V2 HTTP client for SAP Cloud Integration APIs.
@@ -105,6 +106,9 @@ export class ODataClient {
             Accept: 'application/json',
             ...extraHeaders,
           },
+          // Read the body as bytes: decoding binary `$value` downloads (zips)
+          // as text would irreversibly replace invalid UTF-8 with U+FFFD.
+          responseType: 'arraybuffer',
           signal: AbortSignal.timeout(this.timeout),
         }, { fetchCsrfToken: false });
 
@@ -112,7 +116,11 @@ export class ODataClient {
           return undefined;
         }
 
-        return response.data;
+        return decodeResponseBody(
+          Buffer.from(response.data as ArrayBuffer),
+          response.headers?.['content-type'],
+          url,
+        );
       } catch (error: unknown) {
         throw this.handleError(error);
       }
@@ -208,7 +216,11 @@ export class ODataClient {
     while (current instanceof Error) {
       const response = (current as { response?: { status?: number; data?: unknown } }).response;
       if (response?.status) {
-        return parseODataError(response.status, response.data);
+        // Error bodies of `arraybuffer` requests arrive as bytes
+        const data = response.data instanceof ArrayBuffer || Buffer.isBuffer(response.data)
+          ? Buffer.from(response.data as ArrayBuffer).toString('utf-8')
+          : response.data;
+        return parseODataError(response.status, data);
       }
       messages.push(current.message);
       current = current.cause;

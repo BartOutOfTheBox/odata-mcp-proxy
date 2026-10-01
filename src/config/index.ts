@@ -41,6 +41,13 @@ const configSchema = z.object({
     .default(60000),
 
   apiConfigFile: z.string().default('api-config.json'),
+
+  /** Largest binary response (bytes) returned as a base64 resource; default 10 MB. */
+  maxBinaryResponseSize: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10 * 1024 * 1024),
 });
 
 /** Inferred type from the raw Zod schema (enabledApiCategories is still a string). */
@@ -88,6 +95,7 @@ export function loadConfig(): Config {
     enabledApiCategories: process.env.ENABLED_API_CATEGORIES,
     requestTimeout: process.env.REQUEST_TIMEOUT,
     apiConfigFile: process.env.API_CONFIG_FILE,
+    maxBinaryResponseSize: process.env.MAX_BINARY_RESPONSE_SIZE,
   };
 
   const result = configSchema.safeParse(rawInput);

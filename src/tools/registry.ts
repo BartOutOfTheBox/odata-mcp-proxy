@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { ODataClient } from '../client/odata-client.js';
-import { type OperationDefinition, resolveOperation } from '../config/index.js';
+import { BinaryContent, formatBinaryResult } from '../client/response-body.js';
+import { config, type OperationDefinition, resolveOperation } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 
 // ─── Tool Definition Types ───────────────────────────────────────────────────
@@ -172,6 +173,9 @@ async function handleToolCall(
       : `${entitySet}${args.path ?? ''}`;
 
     const result = await client.execute(method, fullPath, args.body, args.headers, jwt);
+    if (result instanceof BinaryContent) {
+      return formatBinaryResult(result, config.maxBinaryResponseSize);
+    }
     return formatToolResult(result ?? { success: true });
   } catch (error) {
     return formatToolError(
